@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ledger — free demo</title>
-<meta name="description" content="Try the full Ledger budget app free in your browser. Import a bank CSV, see what is safe to spend. No account, no subscription.">
+<title>Ledger — try the free demo</title>
+<meta name="description" content="Try the full Ledger budget app free in your browser. See what is safe to spend after bills, subscriptions and spending. No account, no subscription.">
 <meta name="theme-color" content="#12756F">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -207,11 +207,11 @@ table.list td.num.out{color:var(--ink)}
 .quickbar .amt{padding:7px 13px;border:1px solid var(--line);border-radius:20px;
   background:var(--surface);font-size:13.5px;font-weight:500;cursor:pointer}
 .quickbar .amt:hover{border-color:var(--accent);color:var(--accent)}
-#demoBar{background:var(--accent);color:var(--accent-ink);padding:9px 20px;font-size:13.5px;
-  display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
-#demoBar b{font-weight:700}
+#demoBar{background:var(--accent);color:var(--accent-ink);padding:10px 20px;font-size:13.5px;
+  display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
+#demoBar b{font-weight:800;letter-spacing:.06em}
 #demoBar a{color:var(--accent-ink);font-weight:700;text-decoration:underline;white-space:nowrap}
-@media (max-width:600px){ #demoBar{font-size:12.5px;padding:8px 14px} }
+@media (max-width:600px){ #demoBar{font-size:12px;padding:9px 14px;gap:8px} }
 
 .lbl{display:block;font-size:10.5px;letter-spacing:.13em;color:var(--dim);font-weight:700;margin-bottom:9px}
 .swatches{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px}
@@ -313,7 +313,7 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
 </div>
 
 <div id="demoBar">
-  <span><b>Free demo</b> — the real app, every screen. <span id="demoLeft"></span></span>
+  <span><b>LIVE DEMO</b> — sample figures, every screen. Saving, backup and bank import are in the full version.</span>
   <a href="https://www.etsy.com/shop/KeptApps" target="_blank" rel="noopener">Get the full version →</a>
 </div>
 
@@ -708,14 +708,16 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
 <!-- income sheet -->
 <div id="incVeil" class="veil hide"><div class="sheet">
   <h2>Your income</h2>
-  <p class="tiny" style="margin-bottom:16px">Roughly what lands each month. Used for the safe-to-spend
-  number when you haven't logged your pay as a transaction yet.</p>
+  <p class="tiny" style="margin-bottom:16px">What lands in your account each payday, not the monthly
+  total — Ledger works the month out from how often you are paid. Used for safe-to-spend until you
+  have logged your actual pay as a transaction.</p>
   <div class="grid2">
-    <label class="f"><span>Expected monthly income</span><input id="i_amt" type="number" step="0.01" inputmode="decimal"></label>
+    <label class="f"><span>Amount each time you are paid</span><input id="i_amt" type="number" step="0.01" inputmode="decimal"></label>
     <label class="f"><span>Paid</span><select id="i_cycle">
       <option value="monthly">Monthly</option><option value="fortnightly">Every 2 weeks</option>
       <option value="semimonthly">Twice a month</option><option value="weekly">Weekly</option></select></label>
   </div>
+  <p class="tiny" id="i_works" style="margin:-4px 0 4px"></p>
   <div class="foot">
     <button class="btn" id="incCancel">Cancel</button>
     <button class="btn solid" id="incSave">Save</button>
@@ -824,26 +826,20 @@ function readAll(){
 function savePrefs(){ try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch(e){} }
 const DEMO_CAP = 40;
 const demoUsed = () => txns.filter(t => t.demoLogged).length;
-function demoRoom(){
-  if (demoUsed() < DEMO_CAP) return true;
-  if (confirm('The demo stops at ' + DEMO_CAP + ' logged spends \u2014 enough to feel how a real week works.\n\n'
-      + 'Everything you have typed stays here and stays readable. Press Back up in the footer to keep it; '
-      + 'the full version opens that file.\n\nOpen the full version now?'))
+function demoStop(what){
+  if (confirm(what + '\n\nThis is the live demo, so it is a showroom rather than a copy you keep. '
+    + 'The full version does all of this and saves everything on your own machine.\n\nOpen it now?'))
     window.open('https://www.etsy.com/shop/KeptApps', '_blank');
   return false;
 }
-function demoBadge(){
-  const left = Math.max(0, DEMO_CAP - demoUsed());
-  const el = document.getElementById('demoLeft');
-  if (el) el.textContent = left
-    ? left + ' of ' + DEMO_CAP + ' spends left'
-    : 'spend limit reached \u2014 everything you typed is still here';
+function demoRoom(){
+  if (demoUsed() < DEMO_CAP) return true;
+  return demoStop('The demo stops at ' + DEMO_CAP + ' logged spends \u2014 enough to feel how a real week works.');
 }
 function write(){
   snapshotWorth();
   try { localStorage.setItem(KEY, JSON.stringify({ txns,bills,subs,goals,debts,accts,budgets,income,worthLog,alloc })); }
   catch(e){ alert('Your browser refused to save, because its storage is full. Press Back up first so you keep a copy.'); return; }
-  demoBadge();
   $('saveNote').textContent = txns.length
     ? txns.length + ' transaction' + (txns.length===1?'':'s') + ' saved on this device'
     : 'Saved on this device';
@@ -1020,11 +1016,11 @@ function renderSettings(){
   $('printBtn').onclick = () => { setTab('home'); setTimeout(()=>window.print(), 120); };
   $('sampleBtn2').onclick = loadSample;
   $('wipeBtn').onclick = () => {
-    if (!confirm('Erase every transaction, bill, subscription, goal, debt and account? This cannot be undone.')) return;
-    if (!confirm('Really sure? Press Back up first if you have not.')) return;
+    if (!confirm('Reset the demo back to its sample figures?')) return;
+    localStorage.removeItem('ledger.demoseeded');
     txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
     income={amount:null,cycle:'monthly'};
-    write(); render(); toast('Everything erased');
+    loadSample(); toast('Demo reset');
   };
 }
 $('themeBtn').onclick = () => { prefs.theme = prefs.theme==='light'?'dark':'light'; savePrefs(); applyTheme(); };
@@ -1987,8 +1983,20 @@ $('budSave').onclick = () => {
 $('hSafeNote').style.cursor='pointer';
 $('hSafeNote').onclick = () => {
   $('i_amt').value = income.amount || ''; $('i_cycle').value = income.cycle || 'monthly';
+  incomeWorking();
   show('incVeil');
 };
+function incomeWorking(){
+  const a = parseFloat($('i_amt').value) || 0;
+  const c = $('i_cycle').value;
+  if (!a){ $('i_works').textContent = ''; return; }
+  const per = c==='weekly' ? a*52/12 : c==='fortnightly' ? a*26/12 : c==='semimonthly' ? a*2 : a;
+  const label = { weekly:'a week', fortnightly:'every 2 weeks', semimonthly:'twice a month', monthly:'a month' }[c];
+  $('i_works').innerHTML = money2(a) + ' ' + label + ' works out at <b style="color:var(--ink)">' +
+    money2(per) + ' a month</b>.';
+}
+$('i_amt').oninput = incomeWorking;
+$('i_cycle').onchange = incomeWorking;
 $('incCancel').onclick = () => show('incVeil', false);
 $('incVeil').onclick = e => { if (e.target.id==='incVeil') show('incVeil', false); };
 $('incSave').onclick = () => {
@@ -2146,9 +2154,9 @@ function mapStatement(table){
   return rows;
 }
 
-$('importBtn').onclick = () => {
-  staged=null; say('impMsg',''); show('impPreview',false); show('impGo',false); show('impVeil');
-};
+$('importBtn').onclick = () => demoStop('Bank CSV import reads your real statement and sorts every '
+  + 'transaction into a category for you. It is the fastest way to fill Ledger in, and it is in the '
+  + 'full version.');
 $('impCancel').onclick = () => show('impVeil', false);
 $('impVeil').onclick = e => { if (e.target.id==='impVeil') show('impVeil', false); };
 $('pick').onclick = () => $('file').click();
@@ -2196,13 +2204,15 @@ function download(name, text, type){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
-$('backupBtn').onclick = () => {
+$('backupBtn').onclick = () => demoStop('Backup keeps a copy of everything you have entered, and it '
+  + 'is how you move Ledger to another computer.');
+function unusedBackup(){
   download('ledger-backup-'+today()+'.json',
     JSON.stringify({app:'ledger',version:2,saved:new Date().toISOString(),
       txns,bills,subs,goals,debts,accts,budgets,income,worthLog,alloc}, null, 2), 'application/json');
   toast('Backup saved to your downloads');
 };
-$('restoreBtn').onclick = () => $('restoreFile').click();
+$('restoreBtn').onclick = () => demoStop('Restore brings a backup file back into Ledger.');
 $('restoreFile').onchange = e => {
   const f=e.target.files[0]; if(!f) return;
   const fr=new FileReader();
@@ -2220,7 +2230,9 @@ $('restoreFile').onchange = e => {
   };
   fr.readAsText(f); e.target.value='';
 };
-$('exportBtn').onclick = () => {
+$('exportBtn').onclick = () => demoStop('Export gives you a clean CSV of every transaction, so your '
+  + 'figures are never locked in.');
+function unusedExport(){
   const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
   const cols = ['Date','Description','Category','Account','Amount','Note'];
   const rows = txns.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''))
@@ -2284,13 +2296,11 @@ if ('serviceWorker' in navigator) {
 if (CAN_STORE){
   readAll(); applyTheme();
   if (!txns.length && !localStorage.getItem('ledger.demoseeded')){
-    localStorage.setItem('ledger.demoseeded','1'); loadSample();
+    localStorage.setItem('ledger.demoseeded','1');
+    loadSample();
   }
   write(); setTab('home');
-  if (!txns.length && !localStorage.getItem('ledger.seen')){
-    localStorage.setItem('ledger.seen','1'); show('helpVeil');
-  }
-  if (!txns.length) $('sampleBtn').classList.add('solid');
+  $('sampleBtn').textContent = 'Reset the demo';
 }
 </script>
 </body>
