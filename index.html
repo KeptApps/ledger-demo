@@ -759,19 +759,26 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
 <div id="incVeil" class="veil hide"><div class="sheet">
   <h2>Your income</h2>
   <p class="tiny" style="margin-bottom:16px">What lands in your account each payday, not the monthly
-  total — Ledger works the month out from how often you are paid. Used for safe-to-spend until you
-  have logged your actual pay as a transaction.</p>
+  total. Add one for every pay packet: your salary, a partner's, freelance work, benefits. Give each
+  one its next payday and safe to spend counts to the nearest one.</p>
+  <div id="i_list" style="margin-bottom:14px"></div>
   <div class="grid2">
+    <label class="f"><span>What is it?</span><input id="i_name" placeholder="Salary"></label>
     <label class="f"><span>Amount each time you are paid</span><input id="i_amt" type="number" step="0.01" inputmode="decimal"></label>
+  </div>
+  <div class="grid2">
     <label class="f"><span>Paid</span><select id="i_cycle">
       <option value="monthly">Monthly</option><option value="fortnightly">Every 2 weeks</option>
       <option value="semimonthly">Twice a month</option><option value="weekly">Weekly</option></select></label>
+    <label class="f"><span>Next payday</span><input id="i_next" type="date"></label>
   </div>
-  <label class="f"><span>Your next payday</span><input id="i_next" type="date"></label>
-  <p class="tiny" id="i_works" style="margin:-4px 0 4px"></p>
+  <p class="tiny" id="i_works" style="margin:-4px 0 10px"></p>
+  <label class="f"><span>Keep a cushion back (optional)</span><input id="i_buffer" type="number" step="0.01" inputmode="decimal" placeholder="0"></label>
+  <p class="tiny" style="margin:-4px 0 4px">Safe to spend stops at this rather than at zero, so there
+  is always something behind you.</p>
   <div class="foot">
-    <button class="btn" id="incCancel">Cancel</button>
-    <button class="btn solid" id="incSave">Save</button>
+    <button class="btn" id="incCancel">Done</button>
+    <button class="btn solid" id="incSave">Add income</button>
   </div>
 </div></div>
 
@@ -809,9 +816,10 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
   <p class="tiny" style="font-size:14px;margin-top:14px"><b style="color:var(--ink)">Clearing browsing
   data can wipe it.</b> That's the one thing to watch for, and a recent backup makes it a non-event.</p>
   <p class="tiny" style="font-size:14px;margin-top:14px"><b style="color:var(--ink)">Safe to spend</b>
-  is your income for the month, minus what you have already spent, minus the bills and subscriptions
-  still to come. Press "How is this worked out?" to see every figure. It is arithmetic on your own
-  numbers, not advice.</p>
+  is what you have to spend before your next payday: the pay that landed, minus what you have spent
+  since, minus the bills and subscriptions falling due before the next one, minus any cushion you
+  asked Ledger to hold back. Leave your payday blank and it works to the end of the month instead.
+  Press "How is this worked out?" to see every figure. It is arithmetic on your own numbers, not advice.</p>
   <div class="foot"><button class="btn solid" id="helpClose">Got it</button></div>
 </div></div>
 
@@ -825,7 +833,8 @@ try { sessionStorage.setItem('__t','1'); sessionStorage.removeItem('__t'); } cat
 if (!CAN_STORE){ show('blocked'); show('app', false); }
 
 let txns = [], bills = [], subs = [], goals = [], debts = [], accts = [], budgets = {};
-let income = { amount:null, cycle:'monthly', next:'' };
+let incomes = [];   // one entry per pay packet: salary, a partner's, freelance, benefits
+let buffer = 0;     // a cushion safe-to-spend never offers you
 let worthLog = [], alloc = [];
 let prefs = { theme:'light', currency:'USD', sort:'date', dir:-1,
               accent:'teal', paper:'paper', density:'comfortable' };
@@ -865,13 +874,23 @@ function say(el, text){
 }
 
 /* ---------- storage ---------- */
+// Income used to be a single object. Old saves and old backup files still look like
+// that, so they are turned into a one-entry list rather than thrown away.
+function migrateIncomes(d){
+  if (Array.isArray(d.incomes)) return d.incomes.filter(i => i && i.amount);
+  const o = d.income;
+  return (o && o.amount)
+    ? [{ id:uid(), name:'Main income', amount:o.amount, cycle:o.cycle||'monthly', next:o.next||'' }]
+    : [];
+}
 function readAll(){
   try {
     const d = JSON.parse(sessionStorage.getItem(KEY) || '{}');
     txns=d.txns||[]; bills=d.bills||[]; subs=d.subs||[]; goals=d.goals||[];
     debts=d.debts||[]; accts=d.accts||[]; budgets=d.budgets||{};
     worthLog=d.worthLog||[]; alloc=d.alloc||[];
-    income = Object.assign({ amount:null, cycle:'monthly', next:'' }, d.income||{});
+    incomes = migrateIncomes(d);
+    buffer = Number(d.buffer) || 0;
   } catch(e){}
   try { Object.assign(prefs, JSON.parse(sessionStorage.getItem(PREF) || '{}')); } catch(e){}
 }
@@ -890,7 +909,7 @@ function demoRoom(){
 }
 function write(){
   snapshotWorth();
-  try { sessionStorage.setItem(KEY, JSON.stringify({ txns,bills,subs,goals,debts,accts,budgets,income,worthLog,alloc })); }
+  try { sessionStorage.setItem(KEY, JSON.stringify({ txns,bills,subs,goals,debts,accts,budgets,incomes,buffer,worthLog,alloc })); }
   catch(e){ alert('Your browser refused to save, because its storage is full. Press Back up first so you keep a copy.'); return; }
   $('saveNote').textContent = txns.length
     ? txns.length + ' transaction' + (txns.length===1?'':'s') + ' saved on this device'
@@ -902,12 +921,12 @@ const inMonth = (m) => txns.filter(t => (t.date||'').slice(0,7) === m);
 function monthIn(m){ return inMonth(m).filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0); }
 function monthOut(m){ return inMonth(m).filter(t=>t.amount<0).reduce((s,t)=>s-t.amount,0); }
 
-function expectedIncome(){
-  if (!income.amount) return 0;
-  const a = Number(income.amount);
-  return income.cycle==='weekly' ? a*52/12 : income.cycle==='fortnightly' ? a*26/12
-       : income.cycle==='semimonthly' ? a*2 : a;
+function monthlyOf(i){
+  const a = Number(i.amount) || 0;
+  return i.cycle==='weekly' ? a*52/12 : i.cycle==='fortnightly' ? a*26/12
+       : i.cycle==='semimonthly' ? a*2 : a;
 }
+function expectedIncome(){ return incomes.reduce((s,i)=>s+monthlyOf(i), 0); }
 // How many months apart this bill comes round. 1 is the ordinary monthly bill.
 const everyOf = b => Math.max(1, Number(b.every) || 1);
 
@@ -961,26 +980,48 @@ function subsMonthly(){
               : x.cycle==='quarterly' ? a/3 : a);
   },0);
 }
-function safeToSpend(){
-  const m = thisMonth();
-  const got = monthIn(m);
-  const base = got > 0 ? got : expectedIncome();
-  return base - monthOut(m) - billsLeftThisMonth() - subsLeftThisMonth();
+// What still has to go out before a given date.
+function obligationsBefore(np){
+  const days = daysBetween(np, today());
+  let bl = 0, sl = 0;
+  bills.forEach(b => billDueDates(b, days).forEach(o => {
+    if (o.dd < days) bl += (b.sink && everyOf(b) > 1) ? 0 : (Number(b.amount)||0);
+  }));
+  for (let i = 1; i < days; i++){
+    const iso = shiftDay(today(), i);
+    subs.forEach(x => { if (subDueOn(x, iso)) sl += Number(x.amount)||0; });
+  }
+  return { bills: bl, subs: sl };
 }
-// The full working, so the number can be checked rather than trusted.
+
+// Two horizons. Tell Ledger when you are next paid and the number answers "what can
+// I spend before then". Leave that blank and it answers "what is left this month".
+// The full working either way, so the number can be checked rather than trusted.
 function safeBreakdown(){
+  const np = nextPayday(), days = np ? daysBetween(np, today()) : 0;
+  if (np && days > 0){
+    const from  = periodStart() || thisMonth() + '-01';
+    const since = txns.filter(t => (t.date||'') >= from);
+    const gotIn = since.filter(t => t.amount > 0).reduce((s,t)=>s+t.amount, 0);
+    const ob    = obligationsBefore(np);
+    // A bill that was due earlier this month and still is not ticked has not gone
+    // anywhere. It is not in the dates ahead, so it is added here rather than lost.
+    const late  = billsOverdue();
+    const bills_ = ob.bills + late;
+    const base  = gotIn > 0 ? gotIn : payBetween(from, today());
+    const spent = since.filter(t => t.amount < 0).reduce((s,t)=>s-t.amount, 0);
+    return { mode:'payday', until:np, days, from, base, baseIsActual: gotIn > 0, spent,
+             bills:bills_, overdue:late, subs:ob.subs, pot:setAsidePot(),
+             cushion:buffer, total: base - spent - bills_ - ob.subs - buffer };
+  }
   const m = thisMonth(), got = monthIn(m);
-  return {
-    base: got > 0 ? got : expectedIncome(),
-    baseIsActual: got > 0,
-    spent: monthOut(m),
-    bills: billsLeftThisMonth(),
-    overdue: billsOverdue(),
-    subs: subsLeftThisMonth(),
-    pot: setAsidePot(),
-    total: safeToSpend(),
-  };
+  const base = got > 0 ? got : expectedIncome();
+  const spent = monthOut(m), bl = billsLeftThisMonth(), sl = subsLeftThisMonth();
+  return { mode:'month', until:'', days:daysLeftInMonth(), from:m+'-01', base,
+           baseIsActual: got > 0, spent, bills:bl, overdue:billsOverdue(), subs:sl,
+           pot:setAsidePot(), cushion:buffer, total: base - spent - bl - sl - buffer };
 }
+function safeToSpend(){ return safeBreakdown().total; }
 const totalAssets = () => accts.reduce((s,a)=>s+(Number(a.balance)||0),0);
 const totalDebt   = () => debts.reduce((s,d)=>s+(Number(d.balance)||0),0);
 
@@ -1071,7 +1112,7 @@ function renderSettings(){
     if (!confirm('Reset the demo back to its sample figures?')) return;
     sessionStorage.removeItem('ledger.demoseeded');
     txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
-    income={amount:null,cycle:'monthly'};
+    incomes=[]; buffer=0;
     loadSample(); toast('Demo reset');
   };
 }
@@ -1117,7 +1158,7 @@ function render(){
     .map(c=>'<option value="'+esc(c)+'">').join('');
 
   const m = thisMonth(), safe = safeToSpend();
-  const anyData = txns.length || income.amount;
+  const anyData = txns.length || incomes.length;
   $('hSafe').textContent = anyData ? money(safe) : '—';
   $('hSafe').className = !anyData ? '' : safe < 0 ? 'warn' : 'good';
   $('hIn').textContent  = money(monthIn(m) || expectedIncome());
@@ -1201,10 +1242,10 @@ function todayTasks(){
   push('log', 'Log anything you spent today', '30 sec',
     'Takes half a minute and keeps the number honest', 'home');
 
-  if (!income.amount) push('income', 'Tell Ledger what you are paid', '1 min',
+  if (!incomes.length) push('income', 'Tell Ledger what you are paid', '1 min',
     'Safe to spend needs it', 'home');
-  else if (!income.next) push('payday', 'Add your next payday', '30 sec',
-    'So the forecast counts to the right day', 'home');
+  else if (incomes.some(i => !i.next)) push('payday', 'Add your next payday', '30 sec',
+    'So safe to spend counts to the right day', 'home');
 
   if (!accts.length) push('acct', 'Add your current account balance', '1 min',
     'The forecast starts from what you actually have', 'worth');
@@ -1690,33 +1731,70 @@ function liquidBalance(){
   return (liq.length ? liq : accts).reduce((s,a)=>s+(Number(a.balance)||0),0);
 }
 
+function shiftDay(iso, n){
+  const d = new Date(Date.parse(iso+'T00:00:00') + n*86400000);
+  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
 // Real paydays from the date you gave, not a guess at the 1st and the 15th.
-function isPayday(iso){
-  if (!income.next || !income.amount) return false;
-  const d = daysBetween(iso, income.next);
-  if (d < 0) return false;
-  const c = income.cycle;
-  if (c === 'weekly')      return d % 7 === 0;
-  if (c === 'fortnightly') return d % 14 === 0;
+// Works backwards as well as forwards, so Ledger knows which stretch you are in.
+function isPayday(inc, iso){
+  if (!inc || !inc.next || !inc.amount) return false;
+  const d = daysBetween(iso, inc.next);
+  const c = inc.cycle;
+  if (c === 'weekly')      return ((d % 7) + 7) % 7 === 0;
+  if (c === 'fortnightly') return ((d % 14) + 14) % 14 === 0;
   if (c === 'semimonthly'){
-    const dom = +iso.slice(8,10), start = +income.next.slice(8,10);
+    const dom = +iso.slice(8,10), start = +inc.next.slice(8,10);
     const other = start > 15 ? start - 15 : start + 15;
     return dom === start || dom === Math.min(28, other);
   }
-  return +iso.slice(8,10) === +income.next.slice(8,10);   // monthly
+  return +iso.slice(8,10) === +inc.next.slice(8,10);   // monthly
 }
-function payAmount(){
-  return Number(income.amount) || 0;
+// Everything landing on one day, across every income you have entered.
+function payOn(iso){
+  return incomes.reduce((s,i)=>s + (isPayday(i, iso) ? (Number(i.amount)||0) : 0), 0);
 }
-function nextPayday(){
-  if (!income.next) return '';
-  if (income.next >= today()) return income.next;
-  for (let i = 0; i <= 400; i++){
-    const d = new Date(Date.parse(today()+'T00:00:00') + i*86400000);
-    const iso = new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
-    if (isPayday(iso)) return iso;
+function nextPaydayOf(inc){
+  if (!inc.next) return '';
+  if (inc.next >= today()) return inc.next;
+  for (let i = 1; i <= 400; i++){
+    const iso = shiftDay(today(), i);
+    if (isPayday(inc, iso)) return iso;
   }
   return '';
+}
+function nextPayday(){
+  return incomes.map(nextPaydayOf).filter(Boolean).sort()[0] || '';
+}
+// With several incomes, the stretch you are budgeting in is set by the main one —
+// the longest cycle, and the biggest of those. A weekly top-up does not restart it.
+function anchorIncome(){
+  const rank = { monthly:4, semimonthly:3, fortnightly:2, weekly:1 };
+  return incomes.filter(i => i.next && i.amount)
+    .sort((a,b) => (rank[b.cycle]||4) - (rank[a.cycle]||4)
+                || (Number(b.amount)||0) - (Number(a.amount)||0))[0] || null;
+}
+function periodStart(){
+  const a = anchorIncome();
+  if (!a) return '';
+  for (let i = 0; i <= 400; i++){
+    const iso = shiftDay(today(), -i);
+    if (isPayday(a, iso)) return iso;
+  }
+  return '';
+}
+// Everything that landed across every income between two dates.
+function payBetween(from, to){
+  let s = 0;
+  for (let i = 0, n = daysBetween(to, from); i <= n; i++) s += payOn(shiftDay(from, i));
+  return s;
+}
+// The next packet to land, which is the one the paycheck planner splits up.
+function nextPayAmount(){
+  let best = '', amt = 0;
+  incomes.forEach(i => { const d = nextPaydayOf(i);
+    if (d && (!best || d < best)){ best = d; amt = Number(i.amount)||0; } });
+  return amt || (incomes[0] ? Number(incomes[0].amount)||0 : 0);
 }
 
 // A subscription renewing on the 12th renews on the 12th of every month, not once.
@@ -1772,7 +1850,7 @@ function forecast(days){
         bal -= b.sink && everyOf(b) > 1 ? 0 : (Number(b.amount)||0);
       });
       subs.forEach(x=>{ if (subDueOn(x, iso)) bal -= Number(x.amount)||0; });
-      if (isPayday(iso)) bal += payAmount();
+      bal += payOn(iso);
     }
     out.push([iso, bal]);
   }
@@ -1845,7 +1923,7 @@ const DEFAULT_ALLOC = [
 ];
 function renderPaycheck(){
   if (!alloc.length) alloc = DEFAULT_ALLOC.map(a=>Object.assign({},a));
-  const pay = income.amount ? Number(income.amount) : 0;
+  const pay = nextPayAmount();
   const used = alloc.reduce((s,a)=>s+(Number(a.amount)||0),0);
   const left = pay - used;
   $('pPaycheck').innerHTML =
@@ -1963,7 +2041,7 @@ function sampleBar(){ show('sampleBar', true); }
 function startFresh(){
   if (!confirm('Clear the example figures and start with your own?')) return;
   txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
-  income={amount:null,cycle:'monthly',next:''};
+  incomes=[]; buffer=0;
   try { sessionStorage.removeItem(SAMPLE); } catch(e){}
   write(); render(); sampleBar(); setTab('home');
   toast('Cleared — the numbers are yours now');
@@ -2011,7 +2089,7 @@ function loadSample(){
            {id:uid(),name:'The car',balance:9100,type:'Vehicle'}];
   budgets = {'Housing':1500,'Groceries':450,'Eating out':150,'Transport':220,
              'Subscriptions':60,'Shopping':200,'Utilities':180};
-  income = {amount:4200, cycle:'monthly'};
+  incomes = [{id:uid(), name:'Salary', amount:4200, cycle:'monthly', next:''}]; buffer = 0;
   worthLog = []; alloc = [];
   for (let k=6;k>=0;k--){
     const dt=new Date(); dt.setMonth(dt.getMonth()-k);
@@ -2213,29 +2291,68 @@ $('budSave').onclick = () => {
 
 /* income */
 $('hSafeNote').style.cursor='pointer';
-$('hSafeNote').onclick = () => {
-  $('i_amt').value = income.amount || ''; $('i_cycle').value = income.cycle || 'monthly';
-  $('i_next').value = income.next || '';
+let editIncome = null;
+const CYCLE_WORD = { weekly:'a week', fortnightly:'every 2 weeks',
+                     semimonthly:'twice a month', monthly:'a month' };
+function renderIncomeList(){
+  $('i_list').innerHTML = incomes.length
+    ? incomes.map(i =>
+        '<div class="row"><span><b>'+esc(i.name||'Income')+'</b><i>' +
+        money2(Number(i.amount)||0)+' '+(CYCLE_WORD[i.cycle]||'a month') +
+        (i.next ? ' \u00b7 next payday '+i.next : ' \u00b7 no payday set')+'</i></span>' +
+        '<span><button class="btn sm" data-ie="'+i.id+'">Edit</button> ' +
+        '<button class="btn sm" data-ix="'+i.id+'">Remove</button></span></div>').join('')
+    : '<p class="nodata">Nothing added yet.</p>';
+  document.querySelectorAll('[data-ie]').forEach(b => b.onclick = () => fillIncome(b.dataset.ie));
+  document.querySelectorAll('[data-ix]').forEach(b => b.onclick = () => {
+    incomes = incomes.filter(i => i.id !== b.dataset.ix);
+    if (editIncome === b.dataset.ix) fillIncome(null);
+    write(); render(); renderIncomeList();
+  });
+}
+function fillIncome(id){
+  const i = incomes.find(x => x.id === id) || null;
+  editIncome = i ? i.id : null;
+  $('i_name').value  = i ? (i.name||'') : '';
+  $('i_amt').value   = i ? (i.amount||'') : '';
+  $('i_cycle').value = i ? (i.cycle||'monthly') : 'monthly';
+  $('i_next').value  = i ? (i.next||'') : '';
+  $('incSave').textContent = i ? 'Save this one' : 'Add income';
   incomeWorking();
-  show('incVeil');
+}
+$('hSafeNote').style.cursor='pointer';
+$('hSafeNote').onclick = () => {
+  $('i_buffer').value = buffer || '';
+  fillIncome(null); renderIncomeList(); show('incVeil');
 };
 function incomeWorking(){
   const a = parseFloat($('i_amt').value) || 0;
   const c = $('i_cycle').value;
   if (!a){ $('i_works').textContent = ''; return; }
-  const per = c==='weekly' ? a*52/12 : c==='fortnightly' ? a*26/12 : c==='semimonthly' ? a*2 : a;
-  const label = { weekly:'a week', fortnightly:'every 2 weeks', semimonthly:'twice a month', monthly:'a month' }[c];
-  $('i_works').innerHTML = money2(a) + ' ' + label + ' works out at <b style="color:var(--ink)">' +
-    money2(per) + ' a month</b>.';
+  const per = monthlyOf({ amount:a, cycle:c });
+  const others = incomes.filter(i => i.id !== editIncome).reduce((s,i)=>s+monthlyOf(i), 0);
+  $('i_works').innerHTML = money2(a) + ' ' + (CYCLE_WORD[c]||'a month') +
+    ' works out at <b style="color:var(--ink)">' + money2(per) + ' a month</b>' +
+    (others ? ', and ' + money2(per + others) + ' a month with everything else you have added' : '') + '.';
 }
 $('i_amt').oninput = incomeWorking;
 $('i_cycle').onchange = incomeWorking;
 $('incCancel').onclick = () => show('incVeil', false);
 $('incVeil').onclick = e => { if (e.target.id==='incVeil') show('incVeil', false); };
 $('incSave').onclick = () => {
-  income = { amount: parseFloat($('i_amt').value)||null, cycle: $('i_cycle').value,
-             next: $('i_next').value };
-  write(); render(); show('incVeil', false);
+  buffer = parseFloat($('i_buffer').value) || 0;
+  const amt = parseFloat($('i_amt').value) || 0;
+  if (amt){
+    const payload = { name: ($('i_name').value||'').trim() || 'Income', amount: amt,
+                      cycle: $('i_cycle').value, next: $('i_next').value };
+    const ex = incomes.find(i => i.id === editIncome);
+    if (ex) Object.assign(ex, payload);
+    else incomes.push(Object.assign({ id:uid() }, payload));
+    write(); render(); renderIncomeList(); fillIncome(null);
+    toast(ex ? 'Income saved' : 'Income added');
+  } else {
+    write(); render(); show('incVeil', false);
+  }
 };
 
 /* ---------- CSV ---------- */
@@ -2443,7 +2560,7 @@ $('backupBtn').onclick = () => demoStop('Backup keeps a copy of everything you h
 function unusedBackup(){
   download('ledger-backup-'+today()+'.json',
     JSON.stringify({app:'ledger',version:2,saved:new Date().toISOString(),
-      txns,bills,subs,goals,debts,accts,budgets,income,worthLog,alloc}, null, 2), 'application/json');
+      txns,bills,subs,goals,debts,accts,budgets,incomes,buffer,worthLog,alloc}, null, 2), 'application/json');
   toast('Backup saved to your downloads');
 };
 $('restoreBtn').onclick = () => demoStop('Restore brings a backup file back into Ledger.');
@@ -2458,7 +2575,7 @@ $('restoreFile').onchange = e => {
       txns=d.txns||[]; bills=d.bills||[]; subs=d.subs||[]; goals=d.goals||[];
       debts=d.debts||[]; accts=d.accts||[]; budgets=d.budgets||{};
       worthLog=d.worthLog||[]; alloc=d.alloc||[];
-      income=Object.assign({amount:null,cycle:'monthly',next:''}, d.income||{});
+      incomes=migrateIncomes(d); buffer=Number(d.buffer)||0;
       write(); render(); toast('Restored');
     } catch(err){ alert("That doesn't look like a Ledger backup file."); }
   };
@@ -2498,17 +2615,26 @@ $('showWorking').onclick = () => {
   const row = (label, note, amount, cls) =>
     '<div class="workrow'+(cls?' '+cls:'')+'"><span>'+label+(note?'<i>'+note+'</i>':'')+'</span>' +
     '<span>'+(amount>=0?'':'−')+money2(Math.abs(amount))+'</span></div>';
+  const pd = b.mode === 'payday';
+  const per = b.days > 0 ? money2(b.total / b.days) : money2(b.total);
   $('workRows').innerHTML =
-    row(b.baseIsActual ? 'Money in this month' : 'Expected income',
-        b.baseIsActual ? 'What you have actually logged coming in' : 'From your income setting, since nothing is logged yet',
+    row(b.baseIsActual ? (pd ? 'Money in since your last payday' : 'Money in this month')
+                       : (pd ? 'Your last paycheck' : 'Expected income'),
+        b.baseIsActual ? 'What you have actually logged coming in'
+                       : 'From your income settings, since nothing is logged yet',
         b.base) +
-    row('Already spent', 'Everything logged going out this month', -b.spent) +
+    row('Already spent', pd ? 'Everything logged going out since then'
+                            : 'Everything logged going out this month', -b.spent) +
     row('Bills still unpaid', b.overdue
-        ? money2(b.overdue)+' of that is already overdue' : 'Unticked bills for this month',
+        ? money2(b.overdue)+' of that is already overdue'
+        : (pd ? 'Due before your next payday' : 'Unticked bills for this month'),
         -b.bills) +
     (b.pot ? row('  of which set aside', 'Held back for bills that come round less often', 0) : '') +
-    row('Subscriptions still to renew', 'Renewing before the month is out', -b.subs) +
-    row('Safe to spend', daysLeftInMonth()+' days left, so '+money2(b.total/daysLeftInMonth())+' a day',
+    row('Subscriptions still to renew', pd ? 'Renewing before your next payday'
+                                           : 'Renewing before the month is out', -b.subs) +
+    (b.cushion ? row('Cushion held back', 'Safe to spend never offers you this', -b.cushion) : '') +
+    row('Safe to spend', pd ? b.days+' days until payday, so '+per+' a day'
+                            : b.days+' days left this month, so '+per+' a day',
         b.total, 'sum') +
     '<p class="tiny" style="margin-top:14px">Ticking a bill as paid logs it as money out, so the ' +
     'number moves down rather than up. Nothing is ever counted twice.</p>';

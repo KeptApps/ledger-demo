@@ -126,14 +126,14 @@ rep("""  $('wipeBtn').onclick = () => {
     if (!confirm('Erase every transaction, bill, subscription, goal, debt and account? This cannot be undone.')) return;
     if (!confirm('Really sure? Press Back up first if you have not.')) return;
     txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
-    income={amount:null,cycle:'monthly'};
+    incomes=[]; buffer=0;
     write(); render(); toast('Everything erased');
   };""",
 """  $('wipeBtn').onclick = () => {
     if (!confirm('Reset the demo back to its sample figures?')) return;
     localStorage.removeItem('ledger.demoseeded');
     txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
-    income={amount:null,cycle:'monthly'};
+    incomes=[]; buffer=0;
     loadSample(); toast('Demo reset');
   };""")
 
