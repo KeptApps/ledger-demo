@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ledger — try the free demo</title>
-<meta name="description" content="Try the full Ledger budget app free in your browser. See what is safe to spend after bills, subscriptions and spending. No account, no subscription.">
+<title>Ledger — live demo</title>
+<meta name="description" content="Explore the Ledger budget app with sample data. See what is safe to spend after bills, subscriptions and spending. No account, nothing to install.">
 <meta name="theme-color" content="#12756F">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -202,16 +202,49 @@ table.list td.num.out{color:var(--ink)}
 .sinkbox{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   padding:13px 15px;margin-bottom:14px}
 .sinkbox i{display:block;font-style:normal;font-size:12.5px;color:var(--dim);margin-top:3px}
-.quickbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 0}
-.quickbar input{width:104px;padding:8px 11px}
+.greet{font:600 30px/1.2 var(--display);margin:20px 0 2px}
+.greet span{display:block;font:400 13px/1.4 var(--body);color:var(--dim);
+  letter-spacing:.1em;font-weight:600;margin-bottom:6px}
+
+.nownext{display:flex;gap:14px;align-items:center;background:var(--ink);color:var(--bg);
+  border-radius:12px;padding:16px 18px;margin:14px 0 0;flex-wrap:wrap}
+.nownext .pip{width:30px;height:30px;border-radius:50%;background:var(--accent);
+  color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.nownext .body{flex:1;min-width:180px}
+.nownext .kicker{display:block;font-size:10px;letter-spacing:.14em;font-weight:700;opacity:.65}
+.nownext b{display:block;font:600 19px/1.25 var(--display);margin-top:3px}
+.nownext i{display:block;font-style:normal;font-size:12.5px;opacity:.7;margin-top:3px}
+.nownext .btn{background:transparent;border-color:rgba(255,255,255,.35);color:var(--bg)}
+.nownext .btn:hover{border-color:var(--bg)}
+.nownext .btn.ghost{color:var(--bg);opacity:.7}
+.nownext.done{background:var(--good);color:#fff}
+.nownext.done .pip{background:rgba(255,255,255,.25);color:#fff}
+
+.tst{display:flex;gap:11px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);
+  cursor:pointer}
+.tst:last-child{border-bottom:none}
+.tst .box{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;
+  display:grid;place-items:center;font-size:12px;color:transparent}
+.tst.on .box{background:var(--good);border-color:var(--good);color:#fff}
+.tst.on b{text-decoration:line-through;opacity:.55}
+.tst b{font-size:14px;font-weight:600;display:block}
+.tst .mins{margin-left:auto;font-size:11.5px;color:var(--dim);white-space:nowrap}
+#sampleBar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:11px 20px;background:var(--tile);border-bottom:1px solid var(--line);
+  box-shadow:inset 3px 0 0 var(--accent);font-size:13.5px;color:var(--ink)}
+#sampleBar span{flex:1;min-width:230px;line-height:1.45}
+@media (max-width:600px){ #sampleBar{padding:10px 14px;gap:8px;font-size:12.5px} }
+.quickbar{display:flex;gap:8px;align-items:center;margin:14px 0 0;flex-wrap:wrap}
+.quickbar input{width:104px;padding:8px 11px;flex:none}
+.quickbar .chips{display:flex;gap:6px;flex:none}
+@media (max-width:520px){
+  .quickbar input{width:calc(50% - 4px)}
+  .quickbar .chips{width:100%}
+  .quickbar .chips .amt{flex:1;text-align:center}
+}
 .quickbar .amt{padding:7px 13px;border:1px solid var(--line);border-radius:20px;
   background:var(--surface);font-size:13.5px;font-weight:500;cursor:pointer}
 .quickbar .amt:hover{border-color:var(--accent);color:var(--accent)}
-#demoBar{background:var(--accent);color:var(--accent-ink);padding:10px 20px;font-size:13.5px;
-  display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
-#demoBar b{font-weight:800;letter-spacing:.06em}
-#demoBar a{color:var(--accent-ink);font-weight:700;text-decoration:underline;white-space:nowrap}
-@media (max-width:600px){ #demoBar{font-size:12px;padding:9px 14px;gap:8px} }
 
 .lbl{display:block;font-size:10.5px;letter-spacing:.13em;color:var(--dim);font-weight:700;margin-bottom:9px}
 .swatches{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px}
@@ -312,12 +345,12 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
   Firefox.</p>
 </div>
 
-<div id="demoBar">
-  <span><b>LIVE DEMO</b> — sample figures, every screen. Saving, backup and bank import are in the full version.</span>
-  <a href="https://www.etsy.com/shop/KeptApps" target="_blank" rel="noopener">Get the full version →</a>
-</div>
-
 <div id="app">
+<div id="sampleBar">
+  <span><b>Live demo — these are example numbers.</b> Click anything you like. Your changes
+  reset when you close the tab.</span>
+  <button class="btn solid sm" id="sampleMine">Start with my own numbers</button>
+</div>
 <header>
   <div class="wrap bar">
     <div class="mark"></div>
@@ -353,9 +386,22 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
 
   <!-- OVERVIEW -->
   <div id="homeView">
+    <p class="greet" id="greet"></p>
+
+    <div class="nownext" id="nowNext">
+      <span class="pip">1</span>
+      <div class="body">
+        <span class="kicker">RIGHT NOW · ONE THING ONLY</span>
+        <b id="nowTitle">Log anything you spent today</b>
+        <i id="nowWhy"></i>
+      </div>
+      <button class="btn" id="nowDo">Do it</button>
+      <button class="btn ghost sm" id="nowSkip">Skip</button>
+    </div>
+
     <div class="hero">
       <div class="big">
-        <span>SAFE TO SPEND THIS MONTH</span>
+        <span id="safeLabel">SAFE TO SPEND THIS MONTH</span>
         <b id="hSafe">—</b>
         <i id="hSafeNote">Add your income and this month's spending to see the number.</i>
         <button class="btn sm" id="showWorking" style="margin-top:12px">How is this worked out?</button>
@@ -363,10 +409,12 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
           <input id="q_amt" type="number" step="0.01" inputmode="decimal" placeholder="Amount">
           <input id="q_cat" list="catList" placeholder="On what?" style="width:150px">
           <button class="btn solid sm" id="q_log">Log a spend</button>
-          <button class="amt" data-quick="5">5</button>
-          <button class="amt" data-quick="10">10</button>
-          <button class="amt" data-quick="20">20</button>
-          <button class="amt" data-quick="50">50</button>
+          <span class="chips">
+            <button class="amt" data-quick="5">5</button>
+            <button class="amt" data-quick="10">10</button>
+            <button class="amt" data-quick="20">20</button>
+            <button class="amt" data-quick="50">50</button>
+          </span>
         </div>
       </div>
       <div class="split">
@@ -385,6 +433,8 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
     </div>
 
     <div class="panels">
+      <div class="panel"><h3>Three small things</h3>
+        <p class="sub" id="tstDone"></p><div id="pThree"></div></div>
       <div class="panel"><h3>Financial health</h3>
         <p class="sub">Five things worth watching, scored out of 100</p>
         <div id="pHealth"></div></div>
@@ -717,6 +767,7 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
       <option value="monthly">Monthly</option><option value="fortnightly">Every 2 weeks</option>
       <option value="semimonthly">Twice a month</option><option value="weekly">Weekly</option></select></label>
   </div>
+  <label class="f"><span>Your next payday</span><input id="i_next" type="date"></label>
   <p class="tiny" id="i_works" style="margin:-4px 0 4px"></p>
   <div class="foot">
     <button class="btn" id="incCancel">Cancel</button>
@@ -758,8 +809,9 @@ footer select{width:auto;padding:6px 10px;font-size:13px}
   <p class="tiny" style="font-size:14px;margin-top:14px"><b style="color:var(--ink)">Clearing browsing
   data can wipe it.</b> That's the one thing to watch for, and a recent backup makes it a non-event.</p>
   <p class="tiny" style="font-size:14px;margin-top:14px"><b style="color:var(--ink)">Safe to spend</b>
-  is your income for the month, minus what you've already spent, minus the bills still to come. It's
-  arithmetic on your own numbers, not advice.</p>
+  is your income for the month, minus what you have already spent, minus the bills and subscriptions
+  still to come. Press "How is this worked out?" to see every figure. It is arithmetic on your own
+  numbers, not advice.</p>
   <div class="foot"><button class="btn solid" id="helpClose">Got it</button></div>
 </div></div>
 
@@ -769,11 +821,11 @@ const show = (id,on=true) => $(id).classList.toggle('hide', !on);
 const KEY = 'ledger.data.v1', PREF = 'ledger.prefs.v1';
 
 let CAN_STORE = true;
-try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); } catch(e){ CAN_STORE = false; }
+try { sessionStorage.setItem('__t','1'); sessionStorage.removeItem('__t'); } catch(e){ CAN_STORE = false; }
 if (!CAN_STORE){ show('blocked'); show('app', false); }
 
 let txns = [], bills = [], subs = [], goals = [], debts = [], accts = [], budgets = {};
-let income = { amount:null, cycle:'monthly' };
+let income = { amount:null, cycle:'monthly', next:'' };
 let worthLog = [], alloc = [];
 let prefs = { theme:'light', currency:'USD', sort:'date', dir:-1,
               accent:'teal', paper:'paper', density:'comfortable' };
@@ -815,15 +867,15 @@ function say(el, text){
 /* ---------- storage ---------- */
 function readAll(){
   try {
-    const d = JSON.parse(localStorage.getItem(KEY) || '{}');
+    const d = JSON.parse(sessionStorage.getItem(KEY) || '{}');
     txns=d.txns||[]; bills=d.bills||[]; subs=d.subs||[]; goals=d.goals||[];
     debts=d.debts||[]; accts=d.accts||[]; budgets=d.budgets||{};
     worthLog=d.worthLog||[]; alloc=d.alloc||[];
-    income = Object.assign({ amount:null, cycle:'monthly' }, d.income||{});
+    income = Object.assign({ amount:null, cycle:'monthly', next:'' }, d.income||{});
   } catch(e){}
-  try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF) || '{}')); } catch(e){}
+  try { Object.assign(prefs, JSON.parse(sessionStorage.getItem(PREF) || '{}')); } catch(e){}
 }
-function savePrefs(){ try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch(e){} }
+function savePrefs(){ try { sessionStorage.setItem(PREF, JSON.stringify(prefs)); } catch(e){} }
 const DEMO_CAP = 40;
 const demoUsed = () => txns.filter(t => t.demoLogged).length;
 function demoStop(what){
@@ -838,7 +890,7 @@ function demoRoom(){
 }
 function write(){
   snapshotWorth();
-  try { localStorage.setItem(KEY, JSON.stringify({ txns,bills,subs,goals,debts,accts,budgets,income,worthLog,alloc })); }
+  try { sessionStorage.setItem(KEY, JSON.stringify({ txns,bills,subs,goals,debts,accts,budgets,income,worthLog,alloc })); }
   catch(e){ alert('Your browser refused to save, because its storage is full. Press Back up first so you keep a copy.'); return; }
   $('saveNote').textContent = txns.length
     ? txns.length + ' transaction' + (txns.length===1?'':'s') + ' saved on this device'
@@ -1017,7 +1069,7 @@ function renderSettings(){
   $('sampleBtn2').onclick = loadSample;
   $('wipeBtn').onclick = () => {
     if (!confirm('Reset the demo back to its sample figures?')) return;
-    localStorage.removeItem('ledger.demoseeded');
+    sessionStorage.removeItem('ledger.demoseeded');
     txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
     income={amount:null,cycle:'monthly'};
     loadSample(); toast('Demo reset');
@@ -1072,11 +1124,19 @@ function render(){
   $('hOut').textContent = money(monthOut(m));
   $('hBills').textContent = money(billsLeftThisMonth());
   const dl = daysLeftInMonth();
-  $('hDay').textContent = anyData && safe > 0 ? money(safe/dl) : '—';
+  const np = (typeof nextPayday === 'function') ? nextPayday() : null;
+  const runTo = np && daysBetween(np, today()) > 0 ? daysBetween(np, today()) : daysLeftInMonth();
+  const perDay = safe > 0 ? safe / runTo : 0;
+  $('hDay').textContent = anyData && safe > 0 ? money(perDay) : '—';
+  $('safeLabel').textContent = np ? 'SAFE TO SPEND UNTIL PAYDAY' : 'SAFE TO SPEND THIS MONTH';
   $('hSafeNote').textContent = anyData
     ? (safe < 0
-        ? 'You are over for the month. ' + dl + ' day' + (dl===1?'':'s') + ' still to go.'
-        : dl + ' day' + (dl===1?'':'s') + ' left this month, after bills still to come.')
+        ? 'You are over. ' + runTo + ' day' + (runTo===1?'':'s') + ' still to go.'
+        : np
+          ? money(safe) + ' has to last ' + runTo + ' day' + (runTo===1?'':'s') +
+            ', until ' + new Date(np+'T00:00:00').toLocaleDateString(undefined,
+              { weekday:'short', day:'numeric', month:'short' }) + '.'
+          : dl + ' day' + (dl===1?'':'s') + ' left this month, after bills still to come.')
     : 'Add your income and this month\u2019s spending to see the number.';
 
   const fill = (el, has, val, prompt) => {
@@ -1114,7 +1174,90 @@ function bars(entries, fmt, limits){
   }).join('');
 }
 
+/* ---------- greeting, the one next thing, and three small things ---------- */
+function greeting(){
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+}
+const dayKey = () => 'ledger.day.' + today();
+function dayState(){
+  try { return JSON.parse(sessionStorage.getItem(dayKey()) || '{}'); } catch(e){ return {}; }
+}
+function setDayState(o){ try { sessionStorage.setItem(dayKey(), JSON.stringify(o)); } catch(e){} }
+
+// Everything Ledger might sensibly ask of you, most useful first.
+function todayTasks(){
+  const m = thisMonth(), st = dayState(), out = [];
+  const push = (id, label, mins, why, go) => out.push({ id, label, mins, why, go, done: !!st[id] });
+
+  const overdue = bills.filter(b => !(b.paid||[]).includes(m) && b.day < +today().slice(8,10) && billDueIn(b,m));
+  if (overdue.length) push('bills', 'Tick off ' + overdue.length + ' overdue bill' + (overdue.length>1?'s':''),
+    '1 min', overdue.map(b=>b.name).join(', '), 'bills');
+
+  const trials = subs.filter(x => x.trial);
+  if (trials.length) push('trial', 'Decide on ' + trials.length + ' free trial' + (trials.length>1?'s':''),
+    '2 min', trials.map(x=>x.name).join(', ') + ' will start charging', 'bills');
+
+  push('log', 'Log anything you spent today', '30 sec',
+    'Takes half a minute and keeps the number honest', 'home');
+
+  if (!income.amount) push('income', 'Tell Ledger what you are paid', '1 min',
+    'Safe to spend needs it', 'home');
+  else if (!income.next) push('payday', 'Add your next payday', '30 sec',
+    'So the forecast counts to the right day', 'home');
+
+  if (!accts.length) push('acct', 'Add your current account balance', '1 min',
+    'The forecast starts from what you actually have', 'worth');
+
+  const untagged = txns.filter(t => t.amount < 0 && !t.category).length;
+  if (untagged > 3) push('tag', 'Sort ' + untagged + ' transactions into categories', '2 min',
+    'The reports get a lot more useful', 'txn');
+
+  push('review', 'Have a look at what is coming', '1 min',
+    'Bills and renewals in the next fortnight', 'forecast');
+
+  return out;
+}
+
+function renderDay(){
+  $('greet').innerHTML = '<span>' + new Date().toLocaleDateString(undefined,
+    { weekday:'long', day:'numeric', month:'long' }).toUpperCase() + '</span>' + greeting();
+
+  const tasks = todayTasks();
+  const next = tasks.find(t => !t.done);
+  const card = $('nowNext');
+  card.classList.toggle('done', !next);
+  if (next){
+    $('nowTitle').textContent = next.label;
+    $('nowWhy').textContent = next.why;
+    $('nowDo').textContent = 'Do it';
+    show('nowSkip', true);
+    $('nowDo').onclick = () => { const st = dayState(); st[next.id] = true; setDayState(st);
+      if (next.go && next.go !== 'home') setTab(next.go); else render(); };
+    $('nowSkip').onclick = () => { const st = dayState(); st[next.id] = true; setDayState(st); render(); };
+  } else {
+    $('nowTitle').textContent = 'Nothing needs you right now';
+    $('nowWhy').textContent = 'Everything for today is done. Come back tomorrow.';
+    $('nowDo').textContent = 'Start again';
+    show('nowSkip', false);
+    $('nowDo').onclick = () => { setDayState({}); render(); };
+  }
+
+  const three = tasks.slice(0,3);
+  $('tstDone').textContent = three.filter(t=>t.done).length + ' of ' + three.length + ' done today';
+  $('pThree').innerHTML = three.map(t =>
+    '<div class="tst' + (t.done?' on':'') + '" data-task="' + t.id + '">' +
+    '<span class="box">\u2713</span><span><b>' + esc(t.label) + '</b>' +
+    '<i style="font-style:normal;font-size:12.5px;color:var(--dim)">' + esc(t.why) + '</i></span>' +
+    '<span class="mins">' + t.mins + '</span></div>').join('');
+  document.querySelectorAll('[data-task]').forEach(el => {
+    el.onclick = () => { const st = dayState(), k = el.dataset.task;
+      st[k] = !st[k]; setDayState(st); render(); };
+  });
+}
+
 function renderHome(){
+  renderDay();
   const m = thisMonth();
   const cat = {};
   inMonth(m).filter(t=>t.amount<0).forEach(t=>{
@@ -1259,9 +1402,19 @@ function renderBills(){
         txns = txns.filter(t => !(t.billId === bill.id && (t.date||'').slice(0,7) === m));
       } else {
         bill.paid.push(m);
-        // paying a bill is money leaving, so log it — otherwise safe-to-spend rises
-        const already = txns.some(t => t.billId === bill.id && (t.date||'').slice(0,7) === m);
-        if (!already) txns.push({ id:uid(), date:today(), desc:bill.name,
+        // paying a bill is money leaving, so log it — otherwise safe-to-spend rises.
+        // But an imported statement may already contain it, so look for a match first.
+        const words = String(bill.name||'').toLowerCase().split(/\s+/).filter(w=>w.length>3);
+        const amt = Number(bill.amount)||0;
+        const match = txns.find(t => {
+          if (t.billId) return t.billId === bill.id && (t.date||'').slice(0,7) === m;
+          if ((t.date||'').slice(0,7) !== m || t.amount >= 0) return false;
+          if (Math.abs(Math.abs(t.amount) - amt) > Math.max(1, amt*0.02)) return false;
+          const d = String(t.desc||'').toLowerCase();
+          return words.some(w => d.includes(w));
+        });
+        if (match){ match.billId = bill.id; }        // adopt it rather than duplicate it
+        else txns.push({ id:uid(), date:today(), desc:bill.name,
           amount:-(Number(bill.amount)||0), category:bill.category||'Bills',
           account:'', note:'Bill marked paid', billId:bill.id });
       }
@@ -1526,8 +1679,58 @@ function donut(entries, total){
 }
 
 /* ---------- cash flow forecast ---------- */
+// Money you could actually spend this week. A car and a pension are not that.
+const LIQUID = /current|checking|savings|cash/i;
+function liquidBalance(){
+  const liq = accts.filter(a => LIQUID.test(a.type||''));
+  return (liq.length ? liq : accts).reduce((s,a)=>s+(Number(a.balance)||0),0);
+}
+
+// Real paydays from the date you gave, not a guess at the 1st and the 15th.
+function isPayday(iso){
+  if (!income.next || !income.amount) return false;
+  const d = daysBetween(iso, income.next);
+  if (d < 0) return false;
+  const c = income.cycle;
+  if (c === 'weekly')      return d % 7 === 0;
+  if (c === 'fortnightly') return d % 14 === 0;
+  if (c === 'semimonthly'){
+    const dom = +iso.slice(8,10), start = +income.next.slice(8,10);
+    const other = start > 15 ? start - 15 : start + 15;
+    return dom === start || dom === Math.min(28, other);
+  }
+  return +iso.slice(8,10) === +income.next.slice(8,10);   // monthly
+}
+function payAmount(){
+  return Number(income.amount) || 0;
+}
+function nextPayday(){
+  if (!income.next) return '';
+  if (income.next >= today()) return income.next;
+  for (let i = 0; i <= 400; i++){
+    const d = new Date(Date.parse(today()+'T00:00:00') + i*86400000);
+    const iso = new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    if (isPayday(iso)) return iso;
+  }
+  return '';
+}
+
+// A subscription renewing on the 12th renews on the 12th of every month, not once.
+function subDueOn(x, iso){
+  if (!x.next) return false;
+  const d = daysBetween(iso, x.next);
+  if (d < 0) return false;
+  if (x.cycle === 'weekly')    return d % 7 === 0;
+  if (x.cycle === 'yearly')    return iso.slice(5) === x.next.slice(5);
+  if (x.cycle === 'quarterly'){
+    const m = (+iso.slice(0,4)-+x.next.slice(0,4))*12 + (+iso.slice(5,7)-+x.next.slice(5,7));
+    return m % 3 === 0 && +iso.slice(8,10) === +x.next.slice(8,10);
+  }
+  return +iso.slice(8,10) === +x.next.slice(8,10);        // monthly
+}
+
 function forecast(days){
-  let bal = totalAssets();
+  let bal = liquidBalance();
   const out = [];
   const start = today();
   for (let i=0;i<=days;i++){
@@ -1542,14 +1745,8 @@ function forecast(days){
         // money already set aside is not taken again on the day
         bal -= b.sink && everyOf(b) > 1 ? 0 : (Number(b.amount)||0);
       });
-      subs.forEach(x=>{ if (x.next===iso) bal -= Number(x.amount)||0; });
-      const inc = expectedIncome();
-      if (inc){
-        if (income.cycle==='monthly' && dom===1) bal += inc;
-        else if (income.cycle==='semimonthly' && (dom===1||dom===15)) bal += inc/2;
-        else if (income.cycle==='weekly' && d.getDay()===5) bal += inc*12/52;
-        else if (income.cycle==='fortnightly' && d.getDay()===5 && Math.floor(i/7)%2===0) bal += inc*12/26;
-      }
+      subs.forEach(x=>{ if (subDueOn(x, iso)) bal -= Number(x.amount)||0; });
+      if (isPayday(iso)) bal += payAmount();
     }
     out.push([iso, bal]);
   }
@@ -1737,6 +1934,17 @@ function projectPayoff(list, extra){
 }
 
 /* ---------- sample data ---------- */
+// The banner only shows while the figures on screen came from loadSample().
+const SAMPLE = 'ledger.sample';
+function sampleBar(){ show('sampleBar', true); }
+function startFresh(){
+  if (!confirm('Clear the example figures and start with your own?')) return;
+  txns=[];bills=[];subs=[];goals=[];debts=[];accts=[];budgets={};worthLog=[];alloc=[];
+  income={amount:null,cycle:'monthly',next:''};
+  try { sessionStorage.removeItem(SAMPLE); } catch(e){}
+  write(); render(); sampleBar(); setTab('home');
+  toast('Cleared — the numbers are yours now');
+}
 function loadSample(){
   if ((txns.length||accts.length) && !confirm('This replaces what is here now with a sample month. Carry on?')) return;
   const t = today(), y=+t.slice(0,4), mo=+t.slice(5,7);
@@ -1787,7 +1995,8 @@ function loadSample(){
     worthLog.push([new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,10),
       19000 + (6-k)*1050 + Math.round(Math.random()*400-200)]);
   }
-  write(); render(); toast('Sample month loaded');
+  try { sessionStorage.setItem(SAMPLE,'1'); } catch(e){}
+  write(); render(); sampleBar(); toast('Sample month loaded');
 }
 
 /* ---------- editors ---------- */
@@ -1983,6 +2192,7 @@ $('budSave').onclick = () => {
 $('hSafeNote').style.cursor='pointer';
 $('hSafeNote').onclick = () => {
   $('i_amt').value = income.amount || ''; $('i_cycle').value = income.cycle || 'monthly';
+  $('i_next').value = income.next || '';
   incomeWorking();
   show('incVeil');
 };
@@ -2000,7 +2210,8 @@ $('i_cycle').onchange = incomeWorking;
 $('incCancel').onclick = () => show('incVeil', false);
 $('incVeil').onclick = e => { if (e.target.id==='incVeil') show('incVeil', false); };
 $('incSave').onclick = () => {
-  income = { amount: parseFloat($('i_amt').value)||null, cycle: $('i_cycle').value };
+  income = { amount: parseFloat($('i_amt').value)||null, cycle: $('i_cycle').value,
+             next: $('i_next').value };
   write(); render(); show('incVeil', false);
 };
 
@@ -2224,7 +2435,7 @@ $('restoreFile').onchange = e => {
       txns=d.txns||[]; bills=d.bills||[]; subs=d.subs||[]; goals=d.goals||[];
       debts=d.debts||[]; accts=d.accts||[]; budgets=d.budgets||{};
       worthLog=d.worthLog||[]; alloc=d.alloc||[];
-      income=Object.assign({amount:null,cycle:'monthly'}, d.income||{});
+      income=Object.assign({amount:null,cycle:'monthly',next:''}, d.income||{});
       write(); render(); toast('Restored');
     } catch(err){ alert("That doesn't look like a Ledger backup file."); }
   };
@@ -2283,6 +2494,8 @@ $('showWorking').onclick = () => {
 $('workClose').onclick = () => show('workVeil', false);
 $('workVeil').onclick = e => { if (e.target.id==='workVeil') show('workVeil', false); };
 $('sampleBtn').onclick = loadSample;
+$('sampleMine').onclick = () => demoStop('Starting with your own numbers \u2014 and keeping them \u2014 '
+  + 'is the full version. Same app, your figures, saved on your own machine.');
 $('helpBtn').onclick = () => show('helpVeil');
 $('helpClose').onclick = () => show('helpVeil', false);
 $('helpVeil').onclick = e => { if (e.target.id==='helpVeil') show('helpVeil', false); };
@@ -2295,11 +2508,11 @@ if ('serviceWorker' in navigator) {
 }
 if (CAN_STORE){
   readAll(); applyTheme();
-  if (!txns.length && !localStorage.getItem('ledger.demoseeded')){
-    localStorage.setItem('ledger.demoseeded','1');
+  if (!txns.length && !sessionStorage.getItem('ledger.demoseeded')){
+    sessionStorage.setItem('ledger.demoseeded','1');
     loadSample();
   }
-  write(); setTab('home');
+  write(); setTab('home'); sampleBar();
   $('sampleBtn').textContent = 'Reset the demo';
 }
 </script>
