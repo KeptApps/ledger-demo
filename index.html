@@ -1278,9 +1278,9 @@ function renderHome(){
     : '<p class="nodata">No budgets set.</p>' +
       '<button class="btn sm" style="margin-top:8px" onclick="openBudgets()">Set a budget</button>';
 
-  const d = +today().slice(8,10);
-  const due = bills.filter(b=>!(b.paid||[]).includes(m) && b.day>=d && b.day<=d+14)
-    .map(b=>({name:b.name, amount:b.amount, when:'day '+b.day, sort:b.day}))
+  const due = bills.flatMap(b=>billDueDates(b, 14).slice(0,1)
+    .map(o=>({name:b.name, amount:b.amount,
+              when: o.dd===0 ? 'today' : 'in '+o.dd+'d', sort:o.dd})))
     .concat(subs.filter(s=>s.next && daysBetween(s.next, today())>=0 && daysBetween(s.next, today())<=14)
       .map(s=>({name:s.name+(s.trial?' (trial ends)':''), amount:s.amount,
                 when: daysBetween(s.next,today())===0 ? 'today' : 'in '+daysBetween(s.next,today())+'d',
@@ -1580,8 +1580,11 @@ function healthScore(){
   // bills paid on time
   // Nothing recorded means nothing known — not full marks. Those points sit unearned
   // until there is something to score.
-  const due = bills.length;
-  const paid = bills.filter(b=>(b.paid||[]).includes(m)).length;
+  // Only the bills this month actually asks for. A six-monthly bill that is not due
+  // cannot be ticked, so counting it would hold the score down for no reason.
+  const dueThis = bills.filter(b=>billDueIn(b,m));
+  const due = dueThis.length;
+  const paid = dueThis.filter(b=>(b.paid||[]).includes(m)).length;
   parts.push(['Bills paid on time', due ? Math.round(paid/due*20) : 0, 20, !due]);
 
   let sc = 0;
@@ -1619,7 +1622,8 @@ function renderHealth(){
 /* ---------- insights ---------- */
 function renderInsights(){
   const m = thisMonth(), out = [];
-  const overdue = bills.filter(b=>!(b.paid||[]).includes(m) && b.day < +today().slice(8,10));
+  const overdue = bills.filter(b=>!(b.paid||[]).includes(m) && b.day < +today().slice(8,10)
+                                  && billDueIn(b,m) && !b.sink);
   if (overdue.length) out.push(['warn', overdue.length+' bill'+(overdue.length>1?'s are':' is')+' overdue',
     'Worth '+money(overdue.reduce((s,b)=>s+(Number(b.amount)||0),0))+'. Mark them paid once sorted.']);
 
@@ -1729,6 +1733,25 @@ function subDueOn(x, iso){
   return +iso.slice(8,10) === +x.next.slice(8,10);        // monthly
 }
 
+// The dates a bill is genuinely still due on: the right months for its cycle, and
+// not the ones you have already ticked off. Everything that lists or forecasts a
+// bill goes through here, so nothing can disagree with anything else.
+function billDueDates(b, days){
+  const out = [];
+  for (let k = 0; k <= Math.ceil(days/30) + 1; k++){
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + k);
+    d.setDate(Math.min(b.day || 1, new Date(d.getFullYear(), d.getMonth()+1, 0).getDate()));
+    const iso = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    const mo = iso.slice(0,7);
+    const dd = daysBetween(iso, today());
+    if (dd < 0 || dd > days) continue;
+    if (!billDueIn(b, mo)) continue;
+    if ((b.paid||[]).includes(mo)) continue;   // ticked off, and already logged as a spend
+    out.push({ iso, mo, dd });
+  }
+  return out;
+}
+
 function forecast(days){
   let bal = liquidBalance();
   const out = [];
@@ -1742,6 +1765,9 @@ function forecast(days){
         if (b.day !== dom) return;
         const mo = iso.slice(0,7);
         if (!billDueIn(b, mo)) return;
+        // a bill you have already ticked as paid is out of your account already,
+        // so taking it off again would double-count it
+        if ((b.paid||[]).includes(mo)) return;
         // money already set aside is not taken again on the day
         bal -= b.sink && everyOf(b) > 1 ? 0 : (Number(b.amount)||0);
       });
@@ -1797,12 +1823,9 @@ function renderForecast(){
     : '<p class="nodata">Add a month or two of spending to work this out.</p>';
 
   const up = [];
-  bills.forEach(b=>{ for(let k=0;k<3;k++){
-    const d=new Date(); d.setMonth(d.getMonth()+k); d.setDate(b.day||1);
-    const iso=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
-    const dd=daysBetween(iso,today());
-    if (dd>=0&&dd<=60) up.push({n:b.name,a:-(Number(b.amount)||0),d:iso,dd});
-  }});
+  bills.forEach(b=>billDueDates(b, 60).forEach(o=>{
+    up.push({n:b.name, a:-(Number(b.amount)||0), d:o.iso, dd:o.dd});
+  }));
   subs.forEach(x=>{ if(x.next){ const dd=daysBetween(x.next,today());
     if (dd>=0&&dd<=60) up.push({n:x.name,a:-(Number(x.amount)||0),d:x.next,dd}); }});
   up.sort((a,b)=>a.dd-b.dd);
