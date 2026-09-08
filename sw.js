@@ -1,5 +1,5 @@
 // Cache the app shell so Ledger opens with no connection at all.
-const CACHE = 'ledger-v8';
+const CACHE = 'ledger-v9';
 const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
